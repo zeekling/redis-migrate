@@ -13,7 +13,7 @@ else
 	SHOBJ_LDFLAGS ?= -bundle -undefined dynamic_lookup
 endif
 
-FINAL_CFLAGS+= -I./hiredis $(SHOBJ_CFLAGS)
+FINAL_CFLAGS+= $(SHOBJ_CFLAGS)
 
 .PHONY: all
 

@@ -38,8 +38,6 @@ typedef enum {
     REPL_STATE_CONNECTED,       /* Connected to master */
 } repl_state;
 
-mstime_t mstime(void);
-
 long long ustime(void);
 
 int rm_migrateCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
