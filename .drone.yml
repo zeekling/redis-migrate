@@ -1,5 +1,6 @@
 kind: pipeline
 name: default
+type: docker
 
 steps:
 - name: code-analysis
@@ -10,6 +11,7 @@ steps:
     sonar_token:
       from_secret: sonar_token
 - name: build
+  image: gcc
   commands:
   - make clean && make
 trigger:
