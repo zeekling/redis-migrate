@@ -34,6 +34,7 @@ typedef struct migrateObject {
     int port;
     int begin_slot;
     int end_slot;
+    char *psync_replid;
     char psync_offset[32];
 } migrateObj;
 
