@@ -3,12 +3,18 @@
 #define REDIS_MIGRATE_REDIS_MIGRATE_H
 
 #include "redismodule.h"
+#include "ae.h"
+#include "sds.h"
+#include "sdscompat.h"
 
 #define MODULE_NAME "redis-migrate"
 #define REDIS_MIGRATE_VERSION 1
 #define LRU_BITS 24
 #define C_ERR -1
 #define C_OK 1
+
+/* Anti-warning macro... */
+#define UNUSED(V) ((void) V)
 
 typedef struct redisObject {
     unsigned type: 4;
@@ -19,6 +25,17 @@ typedef struct redisObject {
     int refcount;
     void *ptr;
 } robj;
+
+typedef struct migrateObject {
+    char *address;
+    int repl_stat;
+    redisContext *source_cc;
+    char *host;
+    int port;
+    int begin_slot;
+    int end_slot;
+    char psync_offset[32];
+} migrateObj;
 
 typedef enum {
     REPL_STATE_NONE = 0,            /* No active replication */
@@ -36,9 +53,21 @@ typedef enum {
     /* --- End of handshake states --- */
     REPL_STATE_TRANSFER,        /* Receiving .rdb from master */
     REPL_STATE_CONNECTED,       /* Connected to master */
+    STATE_CONNECT_ERROR,
+    STATE_DISCONNECT
 } repl_state;
 
 long long ustime(void);
+
+migrateObj *createMigrateObject(robj *host, int port, int begin_slot, int end_slot);
+
+void freeMigrateObj(migrateObj *m);
+
+int sendReplCommand(RedisModuleCtx *ctx, char *format, ...);
+
+void *syncWithRedis(void *arg);
+
+int connectRedis(RedisModuleCtx *ctx) ;
 
 int rm_migrateCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 
