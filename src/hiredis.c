@@ -1028,6 +1028,20 @@ static int redisNextInBandReplyFromReader(redisContext *c, void **reply) {
     return REDIS_OK;
 }
 
+int redisFlush(redisContext *c) {
+    int wdone = 0;
+    void *aux = NULL;
+    /* Try to read pending replies */
+    if (redisNextInBandReplyFromReader(c,&aux) == REDIS_ERR)
+        return REDIS_ERR;
+    /* Write until done */
+    do {
+        if (redisBufferWrite(c,&wdone) == REDIS_ERR)
+            return REDIS_ERR;
+    } while (!wdone);
+    return REDIS_OK;
+}
+
 int redisGetReply(redisContext *c, void **reply) {
     int wdone = 0;
     void *aux = NULL;

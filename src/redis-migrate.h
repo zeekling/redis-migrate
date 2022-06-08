@@ -35,6 +35,7 @@ typedef struct migrateObject {
     int begin_slot;
     int end_slot;
     char *psync_replid;
+    int isCache;
     char psync_offset[32];
 } migrateObj;
 
@@ -64,7 +65,7 @@ migrateObj *createMigrateObject(robj *host, int port, int begin_slot, int end_sl
 
 void freeMigrateObj(migrateObj *m);
 
-int sendReplCommand(RedisModuleCtx *ctx, char *format, ...);
+int sendSyncCommand(RedisModuleCtx *ctx);
 
 void *syncWithRedis(void *arg);
 
