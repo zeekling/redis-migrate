@@ -42,7 +42,8 @@ hiredisAllocFuncs hiredisAllocFns = {
 };
 
 /* Override hiredis' allocators with ones supplied by the user */
-hiredisAllocFuncs hiredisSetAllocators(hiredisAllocFuncs *override) {
+hiredisAllocFuncs hiredisSetAllocators(hiredisAllocFuncs *override)
+{
     hiredisAllocFuncs orig = hiredisAllocFns;
 
     hiredisAllocFns = *override;
@@ -51,8 +52,9 @@ hiredisAllocFuncs hiredisSetAllocators(hiredisAllocFuncs *override) {
 }
 
 /* Reset allocators to use libc defaults */
-void hiredisResetAllocators(void) {
-    hiredisAllocFns = (hiredisAllocFuncs) {
+void hiredisResetAllocators(void)
+{
+    hiredisAllocFns = (hiredisAllocFuncs){
         .mallocFn = malloc,
         .callocFn = calloc,
         .reallocFn = realloc,
@@ -63,11 +65,13 @@ void hiredisResetAllocators(void) {
 
 #ifdef _WIN32
 
-void *hi_malloc(size_t size) {
+void *hi_malloc(size_t size)
+{
     return hiredisAllocFns.mallocFn(size);
 }
 
-void *hi_calloc(size_t nmemb, size_t size) {
+void *hi_calloc(size_t nmemb, size_t size)
+{
     /* Overflow check as the user can specify any arbitrary allocator */
     if (SIZE_MAX / size < nmemb)
         return NULL;
@@ -75,15 +79,18 @@ void *hi_calloc(size_t nmemb, size_t size) {
     return hiredisAllocFns.callocFn(nmemb, size);
 }
 
-void *hi_realloc(void *ptr, size_t size) {
+void *hi_realloc(void *ptr, size_t size)
+{
     return hiredisAllocFns.reallocFn(ptr, size);
 }
 
-char *hi_strdup(const char *str) {
+char *hi_strdup(const char *str)
+{
     return hiredisAllocFns.strdupFn(str);
 }
 
-void hi_free(void *ptr) {
+void hi_free(void *ptr)
+{
     hiredisAllocFns.freeFn(ptr);
 }
 

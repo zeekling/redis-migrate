@@ -220,7 +220,7 @@ This flag should not be used directly by the module.
 
 /* Logging level strings */
 #define REDISMODULE_LOGLEVEL_DEBUG "debug"
-#define REDISMODULE_LOGLEVEL_VERBOSE "verbose"
+#define REDISMODULE_LOGLEVEL_VERBOSE "VERBOSE"
 #define REDISMODULE_LOGLEVEL_NOTICE "notice"
 #define REDISMODULE_LOGLEVEL_WARNING "warning"
 

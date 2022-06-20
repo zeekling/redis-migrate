@@ -1139,6 +1139,16 @@ int redisAppendCommand(redisContext *c, const char *format, ...) {
     return ret;
 }
 
+int redisSendCommand(redisContext *c, const char *format, ...) {
+    va_list ap;
+    int ret;
+
+    va_start(ap,format);
+    ret = redisvAppendCommand(c,format,ap);
+    va_end(ap);
+    return redisFlush(c);
+}
+
 int redisAppendCommandArgv(redisContext *c, int argc, const char **argv, const size_t *argvlen) {
     hisds cmd;
     long long len;

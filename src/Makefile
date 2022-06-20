@@ -37,9 +37,12 @@ alloc.xo: fmacros.h alloc.h
 dict.xo: fmacros.h alloc.h dict.h
 ae.xo: redismodule.h
 hiredis.xo:fmacros.h hiredis.h net.h sds.h alloc.h async.h
+syncio.xo:redis-migrate.c
+log.xo: log.h
+rdbLoad.xo: rdbLoad.h
 redis-migrate.xo: redismodule.h
 
-XO_LIBS=redis-migrate.xo hiredis.xo sds.xo ssl.xo read.xo alloc.xo dict.xo async.xo net.xo ae.xo
+XO_LIBS=redis-migrate.xo hiredis.xo sds.xo ssl.xo read.xo alloc.xo dict.xo async.xo net.xo ae.xo syncio.xo log.xo rdbLoad.xo
 
 redis-migrate.so: $(XO_LIBS)
 	$(LD) -o $@ $^ $(SHOBJ_LDFLAGS) $(LIBS) -lc

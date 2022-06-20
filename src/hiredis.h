@@ -331,6 +331,7 @@ int redisAppendFormattedCommand(redisContext *c, const char *cmd, size_t len);
  * to get a pipeline of commands. */
 int redisvAppendCommand(redisContext *c, const char *format, va_list ap);
 int redisAppendCommand(redisContext *c, const char *format, ...);
+int redisSendCommand(redisContext *c, const char *format, ...);
 int redisAppendCommandArgv(redisContext *c, int argc, const char **argv, const size_t *argvlen);
 
 /* Issue a command to Redis. In a blocking context, it is identical to calling

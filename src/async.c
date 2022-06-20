@@ -812,7 +812,7 @@ static int __redisAsyncCommand(redisAsyncContext *ac, redisCallbackFn *fn, void 
         if (!(c->flags & REDIS_SUBSCRIBED)) return REDIS_ERR;
 
         /* (P)UNSUBSCRIBE does not have its own response: every channel or
-         * pattern that is unsubscribed will receive a message. This means we
+         * pattern that is unsubscribed will redisReceive a message. This means we
          * should not append a callback function for this command. */
     } else if (strncasecmp(cstr,"monitor\r\n",9) == 0) {
         /* Set monitor flag and push callback */
