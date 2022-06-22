@@ -8,8 +8,7 @@
 
 static migrateObj *mobj;
 
-migrateObj *createMigrateObject(robj *host, int port, int begin_slot, int end_slot)
-{
+migrateObj *createMigrateObject(robj *host, int port, int begin_slot, int end_slot) {
     migrateObj *m;
     m = hi_malloc(sizeof(*m));
     m->host = host->ptr;
@@ -23,15 +22,13 @@ migrateObj *createMigrateObject(robj *host, int port, int begin_slot, int end_sl
     return m;
 }
 
-void freeMigrateObj(migrateObj *m)
-{
+void freeMigrateObj(migrateObj *m) {
     redisFree(m->source_cc);
     hi_free(m);
     mobj = NULL;
 }
 
-long long ustime(void)
-{
+long long ustime(void) {
     struct timeval tv;
     long long ust;
 
@@ -42,27 +39,22 @@ long long ustime(void)
 }
 
 /* Return the UNIX time in milliseconds */
-mstime_t mstime(void)
-{
+mstime_t mstime(void) {
     return ustime() / 1000;
 }
 
-int sendSyncCommand()
-{
-    if (!mobj->isCache)
-    {
+int sendSyncCommand() {
+    if (!mobj->isCache) {
         mobj->isCache = 1;
         mobj->psync_replid = "?";
         memcpy(mobj->psync_offset, "-1", 3);
     }
-    if (redisAppendCommand(mobj->source_cc, "PSYNC %s %s", mobj->psync_replid, mobj->psync_offset) != REDIS_OK)
-    {
+    if (redisAppendCommand(mobj->source_cc, "PSYNC %s %s", mobj->psync_replid, mobj->psync_offset) != REDIS_OK) {
         serverLog(LL_WARNING, "append PSYNC %s %s failed ip:%s,port:%d, ",
                   mobj->psync_replid, mobj->psync_offset, mobj->host, mobj->port);
         return 0;
     }
-    if (redisFlush(mobj->source_cc) != REDIS_OK)
-    {
+    if (redisFlush(mobj->source_cc) != REDIS_OK) {
         serverLog(LL_WARNING, "send PSYNC %s %s failed ip:%s,port:%d, ",
                   mobj->psync_replid, mobj->psync_offset, mobj->host, mobj->port);
         return 0;
@@ -71,56 +63,46 @@ int sendSyncCommand()
     return 1;
 }
 
-sds redisReceive()
-{
+sds redisReceive() {
     char buf[256];
-    if (syncReadLine(mobj->source_cc->fd, buf, sizeof(buf), mobj->timeout) == -1)
-    {
+    if (syncReadLine(mobj->source_cc->fd, buf, sizeof(buf), mobj->timeout) == -1) {
         serverLog(LL_WARNING, "redisReceive failed ip:%s,port:%d ", mobj->host, mobj->port);
         return NULL;
     }
     return hi_sdsnew(buf);
 }
 
-int receiveDataFromRedis()
-{
+int receiveDataFromRedis() {
     sds reply = redisReceive();
-    if (reply == NULL)
-    {
+    if (reply == NULL) {
         serverLog(LL_WARNING, "Master did not reply to PSYNC");
         return PSYNC_TRY_LATER;
     }
-    if (sdslen(reply) == 0)
-    {
+    if (sdslen(reply) == 0) {
         sdsfree(reply);
         return PSYNC_WAIT_REPLY;
     }
     serverLog(LL_NOTICE, "reply=%s", reply);
-    if (!strncmp(reply, "+FULLRESYNC", 11))
-    {
+    if (!strncmp(reply, "+FULLRESYNC", 11)) {
         char *replid = NULL, *offset = NULL;
 
         /* FULL RESYNC, parse the reply in order to extract the replid
          * and the replication offset. */
         replid = strchr(reply, ' ');
-        if (replid)
-        {
+        if (replid) {
             replid++;
             offset = strchr(replid, ' ');
             if (offset)
                 offset++;
         }
-        if (!replid || !offset || (offset - replid - 1) != CONFIG_RUN_ID_SIZE)
-        {
+        if (!replid || !offset || (offset - replid - 1) != CONFIG_RUN_ID_SIZE) {
             serverLog(LL_WARNING, "Master replied with wrong +FULLRESYNC syntax.");
             /* This is an unexpected condition, actually the +FULLRESYNC
              * reply means that the master supports PSYNC, but the reply
              * format seems wrong. To stay safe we blank the master
              * replid to make sure next PSYNCs will fail. */
             memset(mobj->master_replid, 0, CONFIG_RUN_ID_SIZE + 1);
-        }
-        else
-        {
+        } else {
             memcpy(mobj->master_replid, replid, offset - replid - 1);
             mobj->master_replid[CONFIG_RUN_ID_SIZE] = '\0';
             mobj->master_initial_offset = strtoll(offset, NULL, 10);
@@ -130,8 +112,7 @@ int receiveDataFromRedis()
         sdsfree(reply);
         return PSYNC_FULLRESYNC;
     }
-    if (!strncmp(reply, "+CONTINUE", 9))
-    {
+    if (!strncmp(reply, "+CONTINUE", 9)) {
         /* Partial resync was accepted. */
         serverLog(LL_NOTICE, "Successful partial resynchronization with master.");
 
@@ -144,8 +125,7 @@ int receiveDataFromRedis()
         char *end = reply + 9;
         while (end[0] != '\r' && end[0] != '\n' && end[0] != '\0')
             end++;
-        if (end - start == CONFIG_RUN_ID_SIZE)
-        {
+        if (end - start == CONFIG_RUN_ID_SIZE) {
             char new[CONFIG_RUN_ID_SIZE + 1];
             memcpy(new, start, CONFIG_RUN_ID_SIZE);
             new[CONFIG_RUN_ID_SIZE] = '\0';
@@ -155,40 +135,31 @@ int receiveDataFromRedis()
     }
 }
 
-void readFullData()
-{
+void readFullData() {
     static char eofmark[CONFIG_RUN_ID_SIZE];
     static char lastbytes[CONFIG_RUN_ID_SIZE];
     static int usemark = 0;
     char buf[PROTO_IOBUF_LEN];
-    if (mobj->repl_transfer_size == -1)
-    {
+    if (mobj->repl_transfer_size == -1) {
         int nread = syncReadLine(mobj->source_cc->fd, buf, PROTO_IOBUF_LEN, mobj->timeout);
-        if (nread == -1)
-        {
+        if (nread == -1) {
             serverLog(LL_WARNING, "read full data failed");
             goto error;
         }
-        if (buf[0] == '-')
-        {
+        if (buf[0] == '-') {
             serverLog(LL_WARNING,
                       "MASTER aborted replication with an error: %s",
                       buf + 1);
             goto error;
-        }
-        else if (buf[0] == '\0')
-        {
+        } else if (buf[0] == '\0') {
             // mobj->repl_transfer_lastio = server.unixtime;
             return;
-        }
-        else if (buf[0] != '$')
-        {
+        } else if (buf[0] != '$') {
             serverLog(LL_WARNING, "Bad protocol from MASTER, the first byte is not '$' (we received '%s'), are you sure the host and port are right?", buf);
             goto error;
         }
 
-        if (strncmp(buf + 1, "EOF:", 4) == 0 && strlen(buf + 5) >= CONFIG_RUN_ID_SIZE)
-        {
+        if (strncmp(buf + 1, "EOF:", 4) == 0 && strlen(buf + 5) >= CONFIG_RUN_ID_SIZE) {
             usemark = 1;
             usemark = 1;
             memcpy(eofmark, buf + 5, CONFIG_RUN_ID_SIZE);
@@ -197,9 +168,7 @@ void readFullData()
              * at the next call. */
             mobj->repl_transfer_size = 0;
             serverLog(LL_NOTICE, "MASTER <-> REPLICA sync: receiving streamed RDB from master with EOF to parser");
-        }
-        else
-        {
+        } else {
             usemark = 0;
             mobj->repl_transfer_size = strtol(buf + 1, NULL, 10);
             serverLog(LL_NOTICE,
@@ -209,27 +178,22 @@ void readFullData()
     }
     int flag = rdbLoadRioWithLoading(mobj);
 
-
     return;
 error:
     cancelMigrate();
     return;
 }
 
-void cancelMigrate()
-{
+void cancelMigrate() {
 }
 
-void syncDataWithRedis(int fd, void *user_data, int mask)
-{
+void syncDataWithRedis(int fd, void *user_data, int mask) {
     REDISMODULE_NOT_USED(fd);
     REDISMODULE_NOT_USED(mask);
     REDISMODULE_NOT_USED(user_data);
     sds err = NULL;
-    if (mobj->repl_stat == REPL_STATE_CONNECTING)
-    {
-        if (redisSendCommand(mobj->source_cc, "PING") != REDIS_OK)
-        {
+    if (mobj->repl_stat == REPL_STATE_CONNECTING) {
+        if (redisSendCommand(mobj->source_cc, "PING") != REDIS_OK) {
             serverLog(LL_WARNING, "send PING failed ip:%s,port:%d",
                       mobj->host, mobj->port);
             goto error;
@@ -237,20 +201,15 @@ void syncDataWithRedis(int fd, void *user_data, int mask)
         mobj->repl_stat = REPL_STATE_RECEIVE_PING_REPLY;
         return;
     }
-    if (mobj->repl_stat == REPL_STATE_RECEIVE_PING_REPLY)
-    {
+    if (mobj->repl_stat == REPL_STATE_RECEIVE_PING_REPLY) {
         err = redisReceive();
         if (err == NULL)
             goto no_response_error;
-        if (err[0] != '+' && strncmp(err, "-NOAUTH", 7) != 0 && strncmp(err, "-NOPERM", 7) != 0 &&
-            strncmp(err, "-ERR operation not permitted", 28) != 0)
-        {
+        if (err[0] != '+' && strncmp(err, "-NOAUTH", 7) != 0 && strncmp(err, "-NOPERM", 7) != 0 && strncmp(err, "-ERR operation not permitted", 28) != 0) {
             serverLog(LL_WARNING, "Error reply to PING from master: '%s'", err);
             sdsfree(err);
             goto error;
-        }
-        else
-        {
+        } else {
             serverLog(LL_NOTICE, "Master replied to PING, replication can continue...");
         }
         sdsfree(err);
@@ -258,17 +217,14 @@ void syncDataWithRedis(int fd, void *user_data, int mask)
         mobj->repl_stat = REPL_STATE_SEND_HANDSHAKE;
         return;
     }
-    if (mobj->repl_stat == REPL_STATE_SEND_HANDSHAKE)
-    {
+    if (mobj->repl_stat == REPL_STATE_SEND_HANDSHAKE) {
         // todo 增加认证
         mobj->repl_stat = REPL_STATE_RECEIVE_AUTH_REPLY;
     }
-    if (mobj->repl_stat == REPL_STATE_RECEIVE_AUTH_REPLY)
-    {
+    if (mobj->repl_stat == REPL_STATE_RECEIVE_AUTH_REPLY) {
         // todo 接受认证信息
         sds portstr = sdsfromlonglong(mobj->port);
-        if (redisSendCommand(mobj->source_cc, "REPLCONF listening-port %s", portstr) != REDIS_OK)
-        {
+        if (redisSendCommand(mobj->source_cc, "REPLCONF listening-port %s", portstr) != REDIS_OK) {
             serverLog(LL_WARNING, "send PING failed ip:%s,port:%d",
                       mobj->host, mobj->port);
             goto error;
@@ -277,19 +233,16 @@ void syncDataWithRedis(int fd, void *user_data, int mask)
         sdsfree(portstr);
         return;
     }
-    if (mobj->repl_stat == REPL_STATE_RECEIVE_PORT_REPLY)
-    {
+    if (mobj->repl_stat == REPL_STATE_RECEIVE_PORT_REPLY) {
         err = redisReceive();
         if (err == NULL)
             goto no_response_error;
-        if (err[0] == '-')
-        {
+        if (err[0] == '-') {
             serverLog(LL_NOTICE, "(Non critical) Master does not understand REPLCONF listening-port: %s", err);
             goto error;
         }
         serverLog(LL_NOTICE, "REPLCONF listening-port success");
-        if (redisSendCommand(mobj->source_cc, "REPLCONF ip-address %s", mobj->host) != REDIS_OK)
-        {
+        if (redisSendCommand(mobj->source_cc, "REPLCONF ip-address %s", mobj->host) != REDIS_OK) {
             serverLog(LL_WARNING, "REPLCONF ip-address %s failed", mobj->host);
             goto error;
         }
@@ -298,19 +251,16 @@ void syncDataWithRedis(int fd, void *user_data, int mask)
         mobj->repl_stat = REPL_STATE_RECEIVE_IP_REPLY;
         return;
     }
-    if (mobj->repl_stat == REPL_STATE_RECEIVE_IP_REPLY)
-    {
+    if (mobj->repl_stat == REPL_STATE_RECEIVE_IP_REPLY) {
         err = redisReceive();
         if (err == NULL)
             goto no_response_error;
-        if (err[0] == '-')
-        {
+        if (err[0] == '-') {
             serverLog(LL_NOTICE, "(Non critical) Master does not understand REPLCONF ip-address: %s", err);
             goto error;
         }
         serverLog(LL_NOTICE, "REPLCONF REPLCONF ip-address success");
-        if (redisSendCommand(mobj->source_cc, "REPLCONF %s %s %s %s", "capa", "eof", "capa", "psync2") != REDIS_OK)
-        {
+        if (redisSendCommand(mobj->source_cc, "REPLCONF %s %s %s %s", "capa", "eof", "capa", "psync2") != REDIS_OK) {
             serverLog(LL_WARNING, "send REPLCONF capa eof capa psync2 failed");
             goto error;
         }
@@ -319,13 +269,11 @@ void syncDataWithRedis(int fd, void *user_data, int mask)
         mobj->repl_stat = REPL_STATE_RECEIVE_CAPA_REPLY;
         return;
     }
-    if (mobj->repl_stat == REPL_STATE_RECEIVE_CAPA_REPLY)
-    {
+    if (mobj->repl_stat == REPL_STATE_RECEIVE_CAPA_REPLY) {
         err = redisReceive();
         if (err == NULL)
             goto no_response_error;
-        if (err[0] == '-')
-        {
+        if (err[0] == '-') {
             serverLog(LL_NOTICE, "(Non critical) Master does not understand REPLCONF capa: %s", err);
             goto error;
         }
@@ -335,10 +283,8 @@ void syncDataWithRedis(int fd, void *user_data, int mask)
         mobj->repl_stat = REPL_STATE_SEND_PSYNC;
         return;
     }
-    if (mobj->repl_stat == REPL_STATE_SEND_PSYNC)
-    {
-        if (!sendSyncCommand())
-        {
+    if (mobj->repl_stat == REPL_STATE_SEND_PSYNC) {
+        if (!sendSyncCommand()) {
             serverLog(LL_WARNING, "send PSYNC %s %s failed ip:%s,port:%d, ",
                       mobj->psync_replid, mobj->psync_offset, mobj->host, mobj->port);
             goto error;
@@ -346,8 +292,7 @@ void syncDataWithRedis(int fd, void *user_data, int mask)
         mobj->repl_stat = REPL_STATE_RECEIVE_PSYNC_REPLY;
         return;
     }
-    if (mobj->repl_stat != REPL_STATE_RECEIVE_PSYNC_REPLY)
-    {
+    if (mobj->repl_stat != REPL_STATE_RECEIVE_PSYNC_REPLY) {
         serverLog(LL_WARNING, "syncDataWithRedis(): state machine error, state should be RECEIVE_PSYNC but is %d",
                   mobj->repl_stat);
         goto error;
@@ -357,16 +302,14 @@ void syncDataWithRedis(int fd, void *user_data, int mask)
         return;
     if (psync_result == PSYNC_TRY_LATER)
         goto error;
-    if (psync_result == PSYNC_CONTINUE)
-    {
+    if (psync_result == PSYNC_CONTINUE) {
     }
     // 接受全部数据
     serverLog(LL_NOTICE, "begin receive full data");
     readFullData();
     return;
 error:
-    if (err != NULL)
-    {
+    if (err != NULL) {
         sdsfree(err);
     }
     freeMigrateObj(mobj);
@@ -382,14 +325,11 @@ no_response_error: /* Handle receiveSynchronousResponse() error when master has 
  * @param argc
  * @return
  */
-int rm_migrateCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc)
-{
-    if (argc != 5)
-    {
+int rm_migrateCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    if (argc != 5) {
         return RedisModule_WrongArity(ctx);
     }
-    if (RedisModule_IsKeysPositionRequest(ctx))
-    {
+    if (RedisModule_IsKeysPositionRequest(ctx)) {
         RedisModule_Log(ctx, VERBOSE, "get keys from module");
         return RedisModule_ReplyWithSimpleString(ctx, "OK");
     }
@@ -399,8 +339,7 @@ int rm_migrateCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc)
     robj *end_slot = (robj *)argv[4];
     RedisModule_Log(ctx, NOTICE, "host:%s, port:%s, begin:%s, end:%s", (char *)host->ptr,
                     (char *)port->ptr, (char *)begin_slot->ptr, (char *)end_slot->ptr);
-    if (mobj != NULL)
-    {
+    if (mobj != NULL) {
         return RedisModule_ReplyWithError(ctx, "migrating, please waiting");
     }
     mobj = createMigrateObject(host, atoi(port->ptr), atoi(begin_slot->ptr), atoi(end_slot->ptr));
@@ -409,8 +348,7 @@ int rm_migrateCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc)
     REDIS_OPTIONS_SET_TCP(&options, (const char *)mobj->host, mobj->port);
     options.connect_timeout = &timeout;
     mobj->source_cc = redisConnectWithOptions(&options);
-    if (mobj->source_cc == NULL || mobj->source_cc->err)
-    {
+    if (mobj->source_cc == NULL || mobj->source_cc->err) {
         RedisModule_Log(ctx, WARNING, "Could not connect to Redis at ip:%s,port:%d, error:%s",
                         mobj->host, mobj->port, mobj->source_cc->errstr);
         freeMigrateObj(mobj);
@@ -421,29 +359,24 @@ int rm_migrateCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc)
     return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
 
-int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc)
-{
-
+int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     REDISMODULE_NOT_USED(argv);
     REDISMODULE_NOT_USED(argc);
 
     int flag = RedisModule_Init(ctx, MODULE_NAME, REDIS_MIGRATE_VERSION, REDISMODULE_APIVER_1);
-    if (flag == REDISMODULE_ERR)
-    {
+    if (flag == REDISMODULE_ERR) {
         return REDISMODULE_ERR;
     }
 
     RedisModule_Log(ctx, NOTICE, "begin init commands of %s", MODULE_NAME);
     flag = RedisModule_CreateCommand(ctx, "rm.migrate", rm_migrateCommand, "write deny-oom admin getkeys-api", 0, 0, 0);
-    if (flag == REDISMODULE_ERR)
-    {
+    if (flag == REDISMODULE_ERR) {
         RedisModule_Log(ctx, WARNING, "init rm.migrate failed");
         return REDISMODULE_ERR;
     }
     RedisModuleCallReply *reply = RedisModule_Call(ctx, "config", "cc", "get", "logfile");
     long long items = RedisModule_CallReplyLength(reply);
-    if (items != 2)
-    {
+    if (items != 2) {
         RedisModule_Log(ctx, WARNING, "logfile is empty");
         return REDISMODULE_ERR;
     }
