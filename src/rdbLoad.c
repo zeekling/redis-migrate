@@ -82,7 +82,7 @@ void *rm_rdbGenericLoadStringObject(migrateObj *mobj, int flags, size_t *lenptr)
     int sds = flags & RDB_LOAD_SDS;
     int isencoded;
     unsigned long long len;
-    
+
 }
 
 uint64_t rm_rdbLoadLen(migrateObj *mobj, int *isencoded) {
@@ -155,9 +155,6 @@ long long rm_rdbLoadMillisecondTime(migrateObj *mobj, int rdbver) {
     if (rdbver >= 9)
         memrev64(&t64);
     return (long long)t64;
-}
-
-uint64_t rm_rdbLoadLen(migrateObj *mobj, int *isencoded) {
 }
 
 void rm_memrev64(void *p) {

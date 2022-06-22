@@ -37,8 +37,6 @@ time_t rm_rdbLoadTime(migrateObj *mobj);
 
 long long rm_rdbLoadMillisecondTime(migrateObj *mobj, int rdbver);
 
-uint64_t rm_rdbLoadLen(migrateObj *mobi, int *isencoded);
-
 int rm_rdbLoadLenByRef(migrateObj *mobi, int *isencoded, uint64_t *lenptr);
 
 void rm_memrev64(void *p);
