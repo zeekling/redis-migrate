@@ -27,22 +27,44 @@
 #define RDB_LOAD_PLAIN (1 << 1)
 #define RDB_LOAD_SDS (1 << 2)
 
+#define RDB_ENC_INT8 0        /* 8 bit signed integer */
+#define RDB_ENC_INT16 1       /* 16 bit signed integer */
+#define RDB_ENC_INT32 2       /* 32 bit signed integer */
+#define RDB_ENC_LZF 3         /* string compressed with FASTLZ */
+
+#define LONG_STR_SIZE      21
+extern const char *SDS_NOINIT;
+#define OBJ_STRING 0    /* String object. */
+#define OBJ_LIST 1      /* List object. */
+#define OBJ_SET 2       /* Set object. */
+#define OBJ_ZSET 3      /* Sorted set object. */
+#define OBJ_HASH 4      /* Hash object. */
+
+#define htonu64(v) intrev64(v)
+#define ntohu64(v) intrev64(v)
+
 #define LLONG_MAX __LONG_LONG_MAX__
 
-int rm_rdbLoadRioWithLoading(migrateObj *mobj);
+int rmLoadRioWithLoading(migrateObj *mobj);
 
-int rm_rdbLoadType(migrateObj *mobj);
+int rmLoadType(migrateObj *mobj);
 
-time_t rm_rdbLoadTime(migrateObj *mobj);
+time_t rmLoadTime(migrateObj *mobj);
 
-long long rm_rdbLoadMillisecondTime(migrateObj *mobj, int rdbver);
+long long rmLoadMillisecondTime(migrateObj *mobj, int rdbver);
 
-int rm_rdbLoadLenByRef(migrateObj *mobi, int *isencoded, uint64_t *lenptr);
+int rmLoadLenByRef(migrateObj *mobi, int *isencoded, uint64_t *lenptr);
 
 void rm_memrev64(void *p);
 
-uint64_t rm_rdbLoadLen(migrateObj *mobj, int *isencoded);
+uint64_t rmLoadLen(migrateObj *mobj, int *isencoded);
 
-void *rm_rdbGenericLoadStringObject(migrateObj *mobj, int flags, size_t *lenptr);
+robj *rmLoadStringObject(migrateObj *mobj);
+
+void *rmGenericLoadStringObject(migrateObj *mobj, int flags, size_t *lenptr);
+
+void *rmLoadIntegerObject(migrateObj *mobj, int enctype, int flags, size_t *lenptr);
+
+void *rmLoadLzfStringObject(migrateObj *mobj, int flags, size_t *lenptr);
 
 #endif
