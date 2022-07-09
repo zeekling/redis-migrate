@@ -45,6 +45,8 @@ extern const char *SDS_NOINIT;
 
 #define LLONG_MAX __LONG_LONG_MAX__
 
+int rmRead(migrateObj *mobj, void *buf, size_t len);
+
 int rmLoadRioWithLoading(migrateObj *mobj);
 
 int rmLoadType(migrateObj *mobj);
@@ -66,5 +68,7 @@ void *rmGenericLoadStringObject(migrateObj *mobj, int flags, size_t *lenptr);
 void *rmLoadIntegerObject(migrateObj *mobj, int enctype, int flags, size_t *lenptr);
 
 void *rmLoadLzfStringObject(migrateObj *mobj, int flags, size_t *lenptr);
+
+robj *rmLoadObject(int rdbtype, migrateObj *mobj, sds key, int *error);
 
 #endif

@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-int rdbLoadRioWithLoading(migrateObj *mobj) {
+int rmLoadRioWithLoading(migrateObj *mobj) {
     char buf[1024];
     int error;
     if (syncReadLine(mobj->source_cc->fd, buf, 9, mobj->timeout) == -1) {
@@ -13,6 +13,7 @@ int rdbLoadRioWithLoading(migrateObj *mobj) {
         return C_ERR;
     }
     buf[9] = '\0';
+    serverLog(LL_NOTICE, "version:%s", buf);
     if (memcmp(buf, "REDIS", 5) != 0) {
         serverLog(LL_WARNING, "[rm] Wrong signature trying to load DB from file");
         errno = EINVAL;
@@ -34,6 +35,7 @@ int rdbLoadRioWithLoading(migrateObj *mobj) {
             serverLog(LL_WARNING, "read type failed");
             return C_ERR;
         }
+        serverLog(LL_NOTICE, "type: %d", type);
 
         if (type == RDB_OPCODE_EXPIRETIME) {
             expiretime = rmLoadTime(mobj);
@@ -109,7 +111,20 @@ int rdbLoadRioWithLoading(migrateObj *mobj) {
         if ((key = rmGenericLoadStringObject(mobj, RDB_LOAD_SDS, NULL)) == NULL) {
             return NULL;
         }
+        val = rmLoadObject(type, mobj, key, &error);
+
+        if (val == NULL) {
+        }
     }
+}
+
+robj *rmLoadObject(int rdbtype, migrateObj *mobj, sds key, int *error) {
+    int dbid = 0;
+    robj *o = NULL, *ele, *dec;
+    uint64_t len;
+    unsigned int i;
+
+    return o;
 }
 
 robj *rmLoadStringObject(migrateObj *mobj) {
@@ -229,11 +244,19 @@ uint64_t rmLoadLen(migrateObj *mobj, int *isencoded) {
 
 int rmLoadType(migrateObj *mobj) {
     unsigned char type;
-    if (read(mobj->source_cc->fd, &type, 1) == 0) {
+    if (rmRead(mobj, &type, 1) == -1) {
         return -1;
     }
 
     return type;
+}
+
+int rmRead(migrateObj *mobj, void *buf, size_t len) {
+    if (read(mobj->source_cc->fd, &buf, len) == 0) {
+        return -1;
+    }
+    // buf = (char*)buf + len;
+    return 1;
 }
 
 int rmLoadLenByRef(migrateObj *mobj, int *isencoded, uint64_t *lenptr) {

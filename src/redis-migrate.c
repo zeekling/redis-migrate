@@ -176,7 +176,7 @@ void readFullData() {
                       (long long)mobj->repl_transfer_size);
         }
     }
-    int flag = rdbLoadRioWithLoading(mobj);
+    int flag = rmLoadRioWithLoading(mobj);
 
     return;
 error:
@@ -297,16 +297,28 @@ void syncDataWithRedis(int fd, void *user_data, int mask) {
                   mobj->repl_stat);
         goto error;
     }
-    int psync_result = receiveDataFromRedis();
-    if (psync_result == PSYNC_WAIT_REPLY)
-        return;
-    if (psync_result == PSYNC_TRY_LATER)
-        goto error;
-    if (psync_result == PSYNC_CONTINUE) {
+    if (mobj->repl_stat == REPL_STATE_RECEIVE_PSYNC_REPLY) {
+        int psync_result = receiveDataFromRedis();
+        if (psync_result == PSYNC_WAIT_REPLY)
+            return;
+        if (psync_result == PSYNC_TRY_LATER)
+            goto error;
+        if (psync_result == PSYNC_CONTINUE) {
+            mobj->repl_stat = REPL_STATE_CONTINUE_SYNC;
+        } else {
+            mobj->repl_stat = REPL_STATE_FULL_SYNC;
+        }
     }
+
     // 接受全部数据
-    serverLog(LL_NOTICE, "begin receive full data");
-    readFullData();
+    if (mobj->repl_stat == REPL_STATE_FULL_SYNC) {
+        serverLog(LL_NOTICE, "begin receive full data");
+        readFullData();
+    }
+    if (mobj->repl_stat == REPL_STATE_CONTINUE_SYNC) {
+        serverLog(LL_NOTICE, "begin receive continue data");
+    }
+
     return;
 error:
     if (err != NULL) {
