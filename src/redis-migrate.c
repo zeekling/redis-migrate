@@ -147,9 +147,7 @@ void readFullData() {
             goto error;
         }
         if (buf[0] == '-') {
-            serverLog(LL_WARNING,
-                      "MASTER aborted replication with an error: %s",
-                      buf + 1);
+            serverLog(LL_WARNING, "MASTER aborted replication with an error: %s", buf + 1);
             goto error;
         } else if (buf[0] == '\0') {
             // mobj->repl_transfer_lastio = server.unixtime;
@@ -292,11 +290,7 @@ void syncDataWithRedis(int fd, void *user_data, int mask) {
         mobj->repl_stat = REPL_STATE_RECEIVE_PSYNC_REPLY;
         return;
     }
-    if (mobj->repl_stat != REPL_STATE_RECEIVE_PSYNC_REPLY) {
-        serverLog(LL_WARNING, "syncDataWithRedis(): state machine error, state should be RECEIVE_PSYNC but is %d",
-                  mobj->repl_stat);
-        goto error;
-    }
+
     if (mobj->repl_stat == REPL_STATE_RECEIVE_PSYNC_REPLY) {
         int psync_result = receiveDataFromRedis();
         if (psync_result == PSYNC_WAIT_REPLY)
@@ -313,6 +307,7 @@ void syncDataWithRedis(int fd, void *user_data, int mask) {
     // 接受全部数据
     if (mobj->repl_stat == REPL_STATE_FULL_SYNC) {
         serverLog(LL_NOTICE, "begin receive full data");
+        mobj->repl_stat = REPL_STATE_READING_FULL_DATA;
         readFullData();
     }
     if (mobj->repl_stat == REPL_STATE_CONTINUE_SYNC) {

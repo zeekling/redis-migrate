@@ -69,6 +69,7 @@ typedef enum
     REPL_STATE_SEND_PSYNC,          /* Send PSYNC */
     REPL_STATE_RECEIVE_PSYNC_REPLY, /* Wait for PSYNC reply */
     REPL_STATE_FULL_SYNC,
+    REPL_STATE_READING_FULL_DATA, 
     REPL_STATE_CONTINUE_SYNC,
     /* --- End of handshake states --- */
     REPL_STATE_TRANSFER,  /* Receiving .rdb from master */
