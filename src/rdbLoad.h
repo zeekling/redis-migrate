@@ -61,9 +61,9 @@ void rm_memrev64(void *p);
 
 uint64_t rmLoadLen(migrateObj *mobj, int *isencoded);
 
-robj *rmLoadStringObject(migrateObj *mobj);
+sds rmLoadStringObject(migrateObj *mobj);
 
-void *rmGenericLoadStringObject(migrateObj *mobj, int flags, size_t *lenptr);
+sds rmGenericLoadStringObject(migrateObj *mobj, int flags, size_t *lenptr);
 
 void *rmLoadIntegerObject(migrateObj *mobj, int enctype, int flags, size_t *lenptr);
 
