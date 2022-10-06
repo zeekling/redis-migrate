@@ -26,7 +26,8 @@ set(migrate_sources
     src/hiredis/sds.c
     src/hiredis/sockcompat.c
     src/log.cpp
-    src/redis-migrate.cpp)
+    src/thread_pool.cpp
+    src/redis_migrate.cpp)
 
 set(migrate_sources ${migrate_sources})
 

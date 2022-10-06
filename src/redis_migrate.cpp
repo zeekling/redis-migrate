@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "redis-migrate.h"
+#include <pthread.h>
+#include "redis_migrate.h"
 #include "hiredis/hiredis.h"
 #include "redismodule.h"
 #include "log.h"
@@ -149,7 +150,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
         return REDISMODULE_ERR;
     }
     RedisModule_Log(ctx, NOTICE, "init commands of %s success", "rm.migrate");
-    
+
 
     filter = RedisModule_RegisterCommandFilter(ctx, rm_migrateFilter, 0);
     if (filter == NULL) {

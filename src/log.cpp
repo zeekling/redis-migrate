@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "log.h"
-#include "redis-migrate.h"
+#include "redis_migrate.h"
 #include "hiredis/hiredis.h"
 
 static int is_leap_year(time_t year) {
