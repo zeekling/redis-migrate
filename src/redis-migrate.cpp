@@ -148,6 +148,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
         RedisModule_Log(ctx, WARNING, "init rm.migrate failed");
         return REDISMODULE_ERR;
     }
+    RedisModule_Log(ctx, NOTICE, "init commands of %s success", "rm.migrate");
+    
+
     filter = RedisModule_RegisterCommandFilter(ctx, rm_migrateFilter, 0);
     if (filter == NULL) {
         RedisModule_Log(ctx, WARNING, "init filter failed");
