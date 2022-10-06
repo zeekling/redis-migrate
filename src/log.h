@@ -14,20 +14,16 @@
 #define LOG_MAX_LEN    1024
 
 typedef struct logObj {
-    char *logfile;
+    const char *logfile;
     int loglevel;
 } logObj;
 
-static logObj *log;
+#define migrateLog(mLog, level, ...) _migrateLog(mLog, level, __VA_ARGS__);
 
-void createLogObj(char *logfile);
+void _migrateLog(logObj mLog, int level, const char *fmt, ...)
+__attribute__((format(printf, 3, 4)));
 
-#define serverLog(level, ...) _serverLog(level, __VA_ARGS__);
-
-void _serverLog(int level, const char *fmt, ...)
-__attribute__((format(printf, 2, 3)));
-
-void serverLogRaw(int level, const char *msg);
+void migrateLogRaw(logObj mLog, int level, const char *msg);
 
 void nolocks_localtime(struct tm *tmp, time_t t, time_t tz, int dst);
 
